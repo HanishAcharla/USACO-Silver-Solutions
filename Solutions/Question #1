@@ -1,0 +1,27 @@
+#Question #1: Cake Game
+
+Solution
+
+t = int(input())
+for t in range(t):
+    n = int(input())
+    a = list(map(int, input().split()))
+
+    prefix = [0] * (n + 1)
+    for i in range(n):
+        prefix[i + 1] = prefix[i] + a[i]
+
+    total_sum = prefix[n]
+    k = n // 2 - 1
+
+    bessie_final = float('inf')
+    for x in range(k + 1):
+        left = x
+        right = n - (k - x)
+        segment_sum = prefix[right] - prefix[left]
+        if segment_sum < bessie_final:
+            bessie_final = segment_sum
+
+    bessie = bessie_final
+    elsie = total_sum - bessie
+    print(bessie, elsie)
