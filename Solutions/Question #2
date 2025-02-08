@@ -1,0 +1,135 @@
+Question #2: Deforestation
+
+Solution
+
+#include <bits/stdc++.h>
+using namespace std;
+
+class UnionFind {
+public:
+    UnionFind(int n) : parent(n + 1) {
+        iota(parent.begin(), parent.end(), 0);
+    }
+
+    int find(int node) {
+        return (parent[node] != node) ? (parent[node] = find(parent[node])) : node;
+    }
+
+    void unite(int node1, int node2) {
+        parent[find(node1)] = find(node2);
+    }
+
+private:
+    vector<int> parent;
+};
+
+class FenwickTree {
+public:
+    FenwickTree(int n) : size(n), tree(n + 1, 0) {}
+
+    void update(int index, int delta) {
+        while (index <= size) {
+            tree[index] += delta;
+            index += index & -index;
+        }
+    }
+
+    int query(int index) const {
+        int result = 0;
+        while (index > 0) {
+            result += tree[index];
+            index -= index & -index;
+        }
+        return result;
+    }
+
+    int rangeQuery(int left, int right) const {
+        return (left > right) ? 0 : query(right) - query(left - 1);
+    }
+
+private:
+    int size;
+    vector<int> tree;
+};
+
+struct Constraint {
+    int start;
+    int end;
+    int maxAllowed;
+};
+
+vector<Constraint> readConstraints(int numConstraints, const vector<long long>& coords) {
+    vector<Constraint> constraints;
+    for (int i = 0; i < numConstraints; i++) {
+        long long left, right;
+        int threshold;
+        cin >> left >> right >> threshold;
+        int lowerBound = lower_bound(coords.begin(), coords.end(), left) - coords.begin() + 1;
+        int upperBound = upper_bound(coords.begin(), coords.end(), right) - coords.begin();
+        if (lowerBound <= upperBound) {
+            int excess = max(0, upperBound - lowerBound + 1 - threshold);
+            constraints.push_back({lowerBound, upperBound, excess});
+        }
+    }
+    sort(constraints.begin(), constraints.end(), [](const Constraint &a, const Constraint &b) {
+        return a.end < b.end;
+    });
+    return constraints;
+}
+
+void enforceConstraints(const vector<Constraint>& constraints, FenwickTree& fenwick, UnionFind& disjointSet, long long& removedSegments) {
+    for (const auto& constraint : constraints) {
+        int currentCount = fenwick.rangeQuery(constraint.start, constraint.end);
+        if (currentCount > constraint.maxAllowed) {
+            int excess = currentCount - constraint.maxAllowed;
+            while (excess > 0) {
+                int position = disjointSet.find(constraint.end);
+                if (position < constraint.start) break;
+                fenwick.update(position, -1);
+                removedSegments++;
+                disjointSet.unite(position, position - 1);
+                excess--;
+            }
+        }
+    }
+}
+
+void process() {
+    int numPoints, numConstraints;
+    cin >> numPoints >> numConstraints;
+
+    vector<long long> positions(numPoints);
+    for (auto &pos : positions) cin >> pos;
+
+    vector<pair<long long, int>> indexedPositions(numPoints);
+    for (int i = 0; i < numPoints; i++) indexedPositions[i] = {positions[i], i};
+    sort(indexedPositions.begin(), indexedPositions.end());
+
+    vector<long long> sortedCoords(numPoints);
+    for (int i = 0; i < numPoints; i++) sortedCoords[i] = indexedPositions[i].first;
+
+    auto constraints = readConstraints(numConstraints, sortedCoords);
+
+    FenwickTree fenwick(numPoints);
+    for (int i = 1; i <= numPoints; i++) fenwick.update(i, 1);
+
+    UnionFind disjointSet(numPoints);
+    long long removedSegments = 0;
+
+    enforceConstraints(constraints, fenwick, disjointSet, removedSegments);
+
+    cout << (numPoints - removedSegments) << "\n";
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int testCases;
+    cin >> testCases;
+    while (testCases--) {
+        process();
+    }
+
+    return 0;
+}
